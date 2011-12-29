@@ -1,2 +1,2 @@
-rel/*
+rel/files
 src/apps/emqtt/ebin/*.beam
