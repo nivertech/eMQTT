@@ -25,7 +25,7 @@ cd emqtt
 
 # Credits
 
-The first release is based on mqtt4erl.
+The first release is based on rqbbitmq.
 
 www.rabbitmq.com
 
