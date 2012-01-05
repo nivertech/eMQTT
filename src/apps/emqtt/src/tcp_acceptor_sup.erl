@@ -14,34 +14,26 @@
 %% Copyright (c) 2007-2011 VMware, Inc.  All rights reserved.
 %%
 
--module(emqtt_client_sup).
+-module(tcp_acceptor_sup).
 
--behaviour(supervisor2).
+-behaviour(supervisor).
 
--export([start_link/1, start_link/2]).
+-export([start_link/2]).
 
 -export([init/1]).
-
--include("emqtt.hrl").
 
 %%----------------------------------------------------------------------------
 
 -ifdef(use_specs).
-
--spec(start_link/1 :: (mfa()) -> emqtt_types:ok_pid_or_error()).
--spec(start_link/2 :: ({'local', atom()}, mfa()) ->
-                           emqtt_types:ok_pid_or_error()).
-
+-spec(start_link/2 :: (atom(), mfa()) -> emqtt_types:ok_pid_or_error()).
 -endif.
 
 %%----------------------------------------------------------------------------
 
-start_link(Callback) ->
-    supervisor2:start_link(?MODULE, Callback).
+start_link(Name, Callback) ->
+    supervisor:start_link({local,Name}, ?MODULE, Callback).
 
-start_link(SupName, Callback) ->
-    supervisor2:start_link(SupName, ?MODULE, Callback).
-
-init({M,F,A}) ->
-    {ok, {{simple_one_for_one_terminate, 0, 1},
-          [{client, {M,F,A}, temporary, infinity, supervisor, [M]}]}}.
+init(Callback) ->
+    {ok, {{simple_one_for_one, 10, 10},
+          [{tcp_acceptor, {tcp_acceptor, start_link, [Callback]},
+            transient, brutal_kill, worker, [tcp_acceptor]}]}}.

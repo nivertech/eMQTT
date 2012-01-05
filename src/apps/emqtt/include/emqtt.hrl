@@ -26,6 +26,10 @@
 -define(PINGRESP, 13).
 -define(DISCONNECT, 14).
 
+-record(ssl_socket, {tcp, ssl}).
+
+-record(listener, {node, protocol, host, ip_address, port}).
+
 -record(mqtt_client, {
   socket,
   id_pid,
@@ -53,7 +57,7 @@
   dup = 0,
   qos = 0,
   retain = 0,
-  args
+  arg
 }).
 
 -record(sub, {
@@ -71,4 +75,31 @@
   message,
   publish_options = #publish_options{}
 }).
+
+
+-define(COPYRIGHT_MESSAGE, "Copyright (C) 2007-2011 VMware, Inc.").
+-define(INFORMATION_MESSAGE, "Licensed under the MPL.  See http://www.rabbitmq.com/").
+-define(PROTOCOL_VERSION, "AMQP 0-9-1 / 0-9 / 0-8").
+-define(ERTS_MINIMUM, "5.6.3").
+
+-define(MAX_WAIT, 16#ffffffff).
+
+-define(HIBERNATE_AFTER_MIN,        1000).
+-define(DESIRED_HIBERNATE,         10000).
+
+-define(ROUTING_HEADERS, [<<"CC">>, <<"BCC">>]).
+-define(DELETED_HEADER, <<"BCC">>).
+
+-ifdef(debug).
+-define(LOGDEBUG0(F), rabbit_log:debug(F)).
+-define(LOGDEBUG(F,A), rabbit_log:debug(F,A)).
+-define(LOGMESSAGE(D,C,M,Co), rabbit_log:message(D,C,M,Co)).
+-else.
+-define(LOGDEBUG0(F), ok).
+-define(LOGDEBUG(F,A), ok).
+-define(LOGMESSAGE(D,C,M,Co), ok).
+-endif.
+
+-define(LOG(Msg), io:format("{~p:~p ~p}: ~p~n", [?MODULE, ?LINE, self(), Msg])).
+
 

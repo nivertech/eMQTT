@@ -1,8 +1,15 @@
 # eMQTT
 
-Erlang MQTT Server
+Erlang MQTT Server is based on RabbitMQ Network Framework.
 
 # Build
+
+NOTICE: should install rebar first
+
+git clone https://github.com/basho/rebar
+cd rebar
+./bootstrap
+cp rebar .
 
 make 
 
@@ -19,4 +26,6 @@ cd emqtt
 # Credits
 
 The first release is based on mqtt4erl.
+
+www.rabbitmq.com
 
