@@ -96,13 +96,15 @@ recvloop(Socket, ClientPid) ->
   FixedHeader = recv(1, Socket),
   io:format("fixed header: ~p~n", [FixedHeader]),
   RemainingLength = recv_length(Socket),
-  io:format("Length: ~p~n", [RemainingLength]),
   Rest = recv(RemainingLength, Socket),
   Header = emqtt_packet:decode_fixed_header(FixedHeader),
   Message = emqtt_packet:decode_message(Header, Rest),
-  io:format("Message: ~p~n", [Message]),
+  io:format("Message Recved: ~p~n", [Message]),
   gen_server:cast(ClientPid, Message),
-  recvloop(Socket, ClientPid).
+  case Message of
+  #mqtt_packet{type = ?DISCONNECT} -> stop;
+  _ -> recvloop(Socket, ClientPid)
+  end.
 
 recv_length(Socket) ->
   recv_length(recv(1, Socket), 1, 0, Socket).
@@ -111,13 +113,6 @@ recv_length(<<0:1, Length:7>>, Multiplier, Value, _Socket) ->
 recv_length(<<1:1, Length:7>>, Multiplier, Value, Socket) ->
   recv_length(recv(1, Socket), Multiplier * 128, Value + Multiplier * Length, Socket).
 
-send_length(Length, Socket) when Length div 128 > 0 ->
-  Digit = Length rem 128,
-  send(<<1:1, Digit:7/big>>, Socket),
-  send_length(Length div 128, Socket);
-send_length(Length, Socket) ->
-  Digit = Length rem 128,
-  send(<<0:1, Digit:7/big>>, Socket).
 
 recv(0, _Socket) ->
   <<>>;
@@ -127,27 +122,6 @@ recv(Length, Socket) ->
       Bytes;
     {error, Reason} ->
       ?LOG({recv, socket, error, Reason}),
-      exit(Reason)
-  end.
-
-send(#mqtt_packet{} = Message, Socket) ->
-%%?LOG({mqtt_packet_core, send, pretty(Message)}),
-  {VariableHeader, Payload} = emqtt_packet:encode_message(Message),
-  ok = send(emqtt_packet:encode_fixed_header(Message), Socket),
-  ok = send_length(size(VariableHeader) + size(Payload), Socket),
-  ok = send(VariableHeader, Socket),
-  ok = send(Payload, Socket),
-  ok;
-send(<<>>, _Socket) ->
-%%?LOG({send, no_bytes}),
-  ok;
-send(Bytes, Socket) when is_binary(Bytes) ->
-%%?LOG({send,bytes,binary_to_list(Bytes)}),
-  case gen_tcp:send(Socket, Bytes) of
-    ok ->
-      ok;
-    {error, Reason} ->
-      ?LOG({send, socket, error, Reason}),
       exit(Reason)
   end.
 

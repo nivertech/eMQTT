@@ -142,7 +142,12 @@ table_definitions() ->
       [{record_name, listener},
        {attributes, record_info(fields, listener)},
        {type, bag},
-       {match, #listener{_='_'}}]}
+       {match, #listener{_='_'}}]},
+	 {topic,%emqtt_topic
+      [{record_name, topic},
+       {attributes, record_info(fields, topic)},
+       {type, bag},
+       {match, #topic{_='_'}}]}
 	] ++ gm:table_definitions().
 
 table_names() ->

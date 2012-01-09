@@ -60,6 +60,11 @@
   arg
 }).
 
+-record(topic, {
+  name,
+  sub 
+}).
+
 -record(sub, {
   topic,
   qos = 0

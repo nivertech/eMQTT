@@ -63,10 +63,13 @@
                    [{description, "core initialized"},
                     {requires,    kernel_ready}]}).
 
--emqtt_boot_step({networking,
-                   [{mfa,         {emqtt_networking, boot, []}},
+-emqtt_boot_step({router,
+                   [{mfa,         {emqtt_router, boot, []}},
                     {requires,    core_initialized}]}).
 
+-emqtt_boot_step({networking,
+                   [{mfa,         {emqtt_networking, boot, []}},
+                    {requires,    router}]}).
 
 %%---------------------------------------------------------------------------
 

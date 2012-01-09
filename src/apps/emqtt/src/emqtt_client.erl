@@ -27,6 +27,8 @@ start_link(Sock) ->
 	gen_server2:start_link(?MODULE, [Sock], []).
 
 init([Sock]) ->
+	{A1,A2,A3} = now(),
+	random:seed(A1, A2, A3),
     {ok, #state{sock = Sock}}.
 
 %%--------------------------------------------------------------------
@@ -47,9 +49,26 @@ handle_call(_Req, _From, State) ->
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
 handle_cast(#mqtt_packet{type = ?CONNECT}, #state{sock = Sock} = State) ->
-	Reply = #mqtt_packet{type = ?CONNACK, arg = 0},
-	send(Reply, Sock),
+	send(#mqtt_packet{type = ?CONNACK, arg = 0}, Sock),
     {noreply, State};
+
+handle_cast(#mqtt_packet{type = ?PUBLISH, arg={Topic, Msg}}, State) ->
+	emqtt_router:publish(Topic, Msg),
+    {noreply, State};
+
+handle_cast(#mqtt_packet{type = ?SUBSCRIBE, arg=Subs}, #state{sock = Sock} = State) ->
+	[emqtt_router:subscribe(Topic, self()) ||
+		#sub{topic = Topic} <- Subs],
+	MsgId = random:uniform(16#FFFF),
+	send(#mqtt_packet{type = ?SUBACK, arg={MsgId, Subs}}, Sock),
+    {noreply, State};
+
+handle_cast(#mqtt_packet{type = ?PINGREQ}, #state{sock = Sock} = State) ->
+	send(#mqtt_packet{type = ?PINGRESP}, Sock),
+    {noreply, State};
+
+handle_cast(#mqtt_packet{type = ?DISCONNECT}, State) ->
+    {stop, normal, State};
 
 handle_cast(Msg, State) ->
 	io:format("badmsg: ~p~n", [Msg]),
@@ -61,6 +80,10 @@ handle_cast(Msg, State) ->
 %%                                       {stop, Reason, State}
 %% Description: Handling all non call/cast messages
 %%--------------------------------------------------------------------
+handle_info({publish, Topic, Msg}, #state{sock = Sock} = State) ->
+	send(#mqtt_packet{type = ?PUBLISH, arg={Topic, Msg}}, Sock),
+    {noreply, State};
+
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -72,6 +95,7 @@ handle_info(_Info, State) ->
 %% The return value is ignored.
 %%--------------------------------------------------------------------
 terminate(_Reason, _State) ->
+	emqtt_router:unsubscribe(self()),
     ok.
 
 %%--------------------------------------------------------------------
@@ -82,6 +106,7 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 send(#mqtt_packet{} = Message, Socket) ->
+  io:format("Message Sent: ~p~n", [Message]),
 %%?LOG({mqtt_core, send, pretty(Message)}),
   {VariableHeader, Payload} = emqtt_packet:encode_message(Message),
   ok = send(emqtt_packet:encode_fixed_header(Message), Socket),
